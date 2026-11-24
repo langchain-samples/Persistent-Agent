@@ -7,7 +7,10 @@ from unittest.mock import AsyncMock, patch
 
 from langchain_core.runnables import RunnableLambda
 
-from heartbeat import DREAM_PROMPT, HEARTBEAT_PROMPT, ensure_personal_schedules
+from agent import personal_schedules as ensure_personal_schedules
+from dreaming import DREAM_PROMPT
+from heartbeat import HEARTBEAT_PROMPT
+from middleware import per_user_schedules
 
 
 class Schedules:
@@ -15,6 +18,7 @@ class Schedules:
         self.items = list(items)
         self.created = []
         self.deleted = []
+        self.updated = []
 
     async def list(self, *, owner, limit, offset):
         assert owner == {"type": "user"}
@@ -24,6 +28,13 @@ class Schedules:
             "items": self.items[offset:end],
             "next_offset": end if end < len(self.items) else None,
         }
+
+    async def update(self, id, patch, *, owner):
+        assert owner == {"type": "user"}
+        self.updated.append((id, patch))
+        for schedule in self.items:
+            if schedule["id"] == id:
+                schedule.update(patch)
 
     async def create(self, **kwargs):
         self.created.append(kwargs)
@@ -62,6 +73,7 @@ class HeartbeatTests(unittest.IsolatedAsyncioTestCase):
         )
         self.route.start()
         self.addCleanup(self.route.stop)
+        per_user_schedules._VERIFIED.clear()
 
     async def run_hook(self, value, *, scheduled=False):
         async def invoke(state):
@@ -90,7 +102,8 @@ class HeartbeatTests(unittest.IsolatedAsyncioTestCase):
                     "timezone": timezone,
                     "new_thread": kind != "heartbeat",
                     "prompt": prompt,
-                    "metadata": {"kind": kind},
+                    "metadata": {"kind": kind, "protected": True},
+                    "paused": False,
                 }
                 for kind, cron, timezone, prompt in [
                     ("heartbeat", "0 * * * *", "UTC", HEARTBEAT_PROMPT),
@@ -181,22 +194,58 @@ class HeartbeatTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(alice.schedules.created), 2)
         self.assertEqual(len(bob.schedules.created), 2)
 
-    async def test_existing_schedules_are_left_as_configured(self):
+    async def test_existing_schedules_follow_the_code_but_stay_paused(self):
         items = [
             {
-                "id": kind,
-                "metadata": {"kind": kind},
-                "prompt": "Custom prompt",
-                "cron": "0 3 * * *",
-                "timezone": "America/New_York",
+                "id": "heartbeat",
+                "metadata": {"kind": "heartbeat"},
+                "prompt": "Old prompt",
+                "cron": "* * * * *",
+                "timezone": "UTC",
                 "paused": True,
-                "new_thread": True,
-            }
-            for kind in ["heartbeat", "dreaming"]
+                "new_thread": False,
+            },
+            {
+                "id": "dreaming",
+                "metadata": {"kind": "dreaming"},
+                "prompt": DREAM_PROMPT,
+                "cron": "0 2 * * *",
+                "timezone": "America/Los_Angeles",
+                "paused": True,
+                "new_thread": False,
+            },
         ]
         value = runtime(DM, schedules=Schedules(items))
         await self.run_hook(value)
+        self.assertEqual(
+            value.schedules.updated,
+            [
+                (
+                    "heartbeat",
+                    {
+                        "cron": "0 * * * *",
+                        "prompt": HEARTBEAT_PROMPT,
+                        "metadata": {"kind": "heartbeat", "protected": True},
+                    },
+                )
+            ],
+        )
+        # new_thread can't be patched: dreaming is replaced, still paused.
+        self.assertEqual(value.schedules.deleted, ["dreaming"])
+        (made,) = value.schedules.created
+        self.assertEqual(
+            (made["metadata"], made["new_thread"]),
+            ({"kind": "dreaming", "protected": True}, True),
+        )
+        self.assertTrue(all(s["paused"] for s in value.schedules.items))
+
+    async def test_a_person_is_checked_once_an_hour_until_forgotten(self):
+        value = runtime(DM)
+        value.schedules.list = AsyncMock(wraps=value.schedules.list)
         await self.run_hook(value)
-        self.assertEqual(value.schedules.items, items)
-        self.assertEqual(value.schedules.created, [])
-        self.assertEqual(value.schedules.deleted, [])
+        await self.run_hook(value)
+        self.assertEqual(value.schedules.list.await_count, 1)
+        per_user_schedules.forget("alice")
+        await self.run_hook(value)
+        self.assertEqual(value.schedules.list.await_count, 2)
+        self.assertEqual(len(value.schedules.created), 2)

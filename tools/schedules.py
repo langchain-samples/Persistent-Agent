@@ -66,12 +66,18 @@ def _line(schedule: dict) -> str:
     when = schedule.get("cron") or schedule.get("at")
     paused = " (paused)" if schedule["paused"] else ""
     metadata = schedule.get("metadata") or {}
-    tag = (
-        f" [playbook {metadata.get('playbook')}]"
-        if metadata.get("kind") == "playbook"
-        else ""
-    )
+    if metadata.get("kind") == "playbook":
+        tag = f" [playbook {metadata.get('playbook')}]"
+    elif _protected(schedule):
+        tag = f" [built-in {metadata.get('kind', 'schedule')}, can't be cancelled]"
+    else:
+        tag = ""
     return f"{schedule['id']} {when}{paused}{tag}: {schedule.get('prompt', '')}"
+
+
+def _protected(schedule: dict) -> bool:
+    """Set up by the agent's code (see middleware/per_user_schedules.py), not cancellable."""
+    return (schedule.get("metadata") or {}).get("protected") is True
 
 
 def _here(schedule: dict, runtime: ManagedDeepAgentRuntime) -> bool:
@@ -96,8 +102,16 @@ async def list_schedules(runtime: ManagedDeepAgentRuntime) -> str:
 
 @tool
 async def cancel_schedule(schedule_id: str, runtime: ManagedDeepAgentRuntime) -> str:
-    """Cancel one of this person's schedules, or a follow-up in this conversation."""
+    """Cancel one of this person's schedules, or a follow-up in this conversation.
+    The built-in heartbeat and dreaming schedules can't be cancelled."""
     try:
+        found = await runtime.schedules.get(schedule_id, owner=owner(runtime))
+        if _protected(found):
+            kind = found["metadata"].get("kind", "background")
+            return (
+                f"{schedule_id} is the built-in {kind} schedule and can't be "
+                "cancelled. To quiet it, pause or finish goals instead."
+            )
         await runtime.schedules.delete(schedule_id, owner=owner(runtime))
     except ScheduleNotFoundError:
         agent = {"type": "agent"}

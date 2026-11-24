@@ -6,6 +6,7 @@ from langchain.tools import tool
 from managed_deepagents import ManagedDeepAgentRuntime
 from managed_deepagents._memory.user_memory import UserMemoryBackend
 
+from middleware.per_user_schedules import forget
 from tools.owner import owner, private
 
 
@@ -43,6 +44,9 @@ async def clear_me(runtime: ManagedDeepAgentRuntime) -> str:
             raise RuntimeError(
                 "Couldn't delete personal memory; reset did not complete."
             )
+    # Recreate their heartbeat and dreaming on the next DM, not an hour later.
+    if person := getattr(runtime.server_info.principal, "id", None):
+        forget(person)
     remaining = await _user_memory().als("/")
     if remaining.error or remaining.entries != []:
         raise RuntimeError(

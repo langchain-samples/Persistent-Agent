@@ -10,7 +10,9 @@ from pathlib import Path
 
 from managed_deepagents import ManagedServerRuntime, define_deep_agent
 
-from heartbeat import ensure_personal_schedules
+from dreaming import DREAMING
+from heartbeat import HEARTBEAT
+from middleware.per_user_schedules import per_user_schedules
 from slack_conversation import install
 from tools.reset import clear_me
 from tools.schedules import cancel_schedule, list_schedules, schedule
@@ -18,6 +20,10 @@ from tools.schedules import cancel_schedule, list_schedules, schedule
 # Read at import: the async factory can't block on file reads.
 HERE = Path(__file__).parent
 INSTRUCTIONS = (HERE / "instructions.md").read_text().strip()
+
+# Every person gets these, created on their DM, as them, and protected from the
+# schedule tools. See middleware/per_user_schedules.py.
+personal_schedules = per_user_schedules([HEARTBEAT, DREAMING])
 
 
 async def agent(runtime: ManagedServerRuntime):
@@ -28,7 +34,7 @@ async def agent(runtime: ManagedServerRuntime):
         # LLM Gateway by default, so LANGSMITH_API_KEY is the only key.
         model=os.environ.get("AGENT_MODEL", "langsmith:anthropic/claude-opus-5-5"),
         instructions=INSTRUCTIONS,
-        middleware=[ensure_personal_schedules],
+        middleware=[personal_schedules],
         tools=[
             schedule,
             list_schedules,
