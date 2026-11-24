@@ -9,7 +9,6 @@ from langchain_core.runnables import RunnableLambda
 
 from dreaming import DREAM_PROMPT, DREAMING
 from heartbeat import HEARTBEAT, HEARTBEAT_PROMPT
-from middleware import per_user_schedules as middleware
 from middleware.per_user_schedules import per_user_schedules
 
 ensure_personal_schedules = per_user_schedules([HEARTBEAT, DREAMING])
@@ -20,7 +19,6 @@ class Schedules:
         self.items = list(items)
         self.created = []
         self.deleted = []
-        self.updated = []
 
     async def list(self, *, owner, limit, offset):
         assert owner == {"type": "user"}
@@ -30,13 +28,6 @@ class Schedules:
             "items": self.items[offset:end],
             "next_offset": end if end < len(self.items) else None,
         }
-
-    async def update(self, id, patch, *, owner):
-        assert owner == {"type": "user"}
-        self.updated.append((id, patch))
-        for schedule in self.items:
-            if schedule["id"] == id:
-                schedule.update(patch)
 
     async def create(self, **kwargs):
         self.created.append(kwargs)
@@ -75,7 +66,6 @@ class HeartbeatTests(unittest.IsolatedAsyncioTestCase):
         )
         self.route.start()
         self.addCleanup(self.route.stop)
-        middleware._VERIFIED.clear()
 
     async def run_hook(self, value, *, scheduled=False):
         async def invoke(state):
@@ -105,7 +95,6 @@ class HeartbeatTests(unittest.IsolatedAsyncioTestCase):
                     "new_thread": kind != "heartbeat",
                     "prompt": prompt,
                     "metadata": {"kind": kind},
-                    "paused": False,
                 }
                 for kind, cron, timezone, prompt in [
                     ("heartbeat", "0 * * * *", "UTC", HEARTBEAT_PROMPT),
@@ -196,7 +185,7 @@ class HeartbeatTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(alice.schedules.created), 2)
         self.assertEqual(len(bob.schedules.created), 2)
 
-    async def test_existing_schedules_follow_the_code_but_stay_paused(self):
+    async def test_existing_schedules_are_left_as_configured(self):
         items = [
             {
                 "id": kind,
@@ -205,22 +194,13 @@ class HeartbeatTests(unittest.IsolatedAsyncioTestCase):
                 "cron": "0 3 * * *",
                 "timezone": "America/New_York",
                 "paused": True,
-                "new_thread": kind != "heartbeat",
+                "new_thread": True,
             }
             for kind in ["heartbeat", "dreaming"]
         ]
         value = runtime(DM, schedules=Schedules(items))
         await self.run_hook(value)
-        self.assertEqual(
-            [id for id, _ in value.schedules.updated], ["heartbeat", "dreaming"]
-        )
-        for schedule, spec in zip(
-            value.schedules.items, [HEARTBEAT, DREAMING], strict=True
-        ):
-            self.assertEqual(
-                (schedule["prompt"], schedule["cron"], schedule["timezone"]),
-                (spec.prompt, spec.cron, spec.timezone),
-            )
-            self.assertTrue(schedule["paused"])
+        await self.run_hook(value)
+        self.assertEqual(value.schedules.items, items)
         self.assertEqual(value.schedules.created, [])
         self.assertEqual(value.schedules.deleted, [])
