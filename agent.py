@@ -12,7 +12,7 @@ from managed_deepagents import ManagedServerRuntime, define_deep_agent
 
 from dreaming import DREAMING
 from heartbeat import HEARTBEAT
-from middleware.per_user_schedules import per_user_schedules
+from middleware.per_user_schedules import PerUserSchedulesMiddleware
 from slack_conversation import install
 from tools.reset import clear_me
 from tools.schedules import cancel_schedule, list_schedules, schedule
@@ -31,7 +31,7 @@ async def agent(runtime: ManagedServerRuntime):
         model=os.environ.get("AGENT_MODEL", "langsmith:anthropic/claude-opus-5-5"),
         instructions=INSTRUCTIONS,
         # Every person gets these, created on their DM, as them.
-        middleware=[per_user_schedules([HEARTBEAT, DREAMING])],
+        middleware=[PerUserSchedulesMiddleware(schedules=[HEARTBEAT, DREAMING])],
         tools=[
             schedule,
             list_schedules,

@@ -9,9 +9,9 @@ from langchain_core.runnables import RunnableLambda
 
 from dreaming import DREAM_PROMPT, DREAMING
 from heartbeat import HEARTBEAT, HEARTBEAT_PROMPT
-from middleware.per_user_schedules import per_user_schedules
+from middleware.per_user_schedules import PerUserSchedulesMiddleware
 
-ensure_personal_schedules = per_user_schedules([HEARTBEAT, DREAMING])
+ensure_personal_schedules = PerUserSchedulesMiddleware(schedules=[HEARTBEAT, DREAMING])
 
 
 class Schedules:
