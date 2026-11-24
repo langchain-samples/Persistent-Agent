@@ -1,7 +1,7 @@
 """Each person's hourly heartbeat: advances their goals and, rarely, offers help.
 
 It runs as the person, continuing their DM, and is created on their first DM by
-middleware/per_user_schedules.py. It's protected: the schedule tools can't cancel it.
+middleware/per_user_schedules.py.
 """
 
 from middleware.per_user_schedules import PersonalSchedule

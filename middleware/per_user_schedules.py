@@ -7,10 +7,7 @@ code: a redeploy that changes a prompt, cron or timezone reaches everyone on the
 next DM. Whether a schedule is paused stays the person's choice. Each person is
 checked at most once per `recheck_seconds` in a process, so most DMs cost nothing.
 
-Each is marked `metadata["protected"] = True`; the schedule tools refuse to cancel
-protected schedules (tools/schedules.py), so "delete my schedules" can't stop them.
-Code can still change or delete them with runtime.schedules. Which schedules every
-person gets is up to the caller: see agent.py.
+Which schedules every person gets is up to the caller: see agent.py.
 """
 
 import asyncio
@@ -61,21 +58,10 @@ async def _all(runtime: ManagedRuntime) -> list[dict]:
             return items
 
 
-def _metadata(spec: PersonalSchedule, existing: dict | None = None) -> dict:
-    return {**(existing or {}), "kind": spec.key, "protected": True}
-
-
 def _changes(schedule: dict, spec: PersonalSchedule) -> dict:
     """What to patch so a schedule matches the code; never its paused state."""
-    metadata = schedule.get("metadata") or {}
-    wanted = {
-        "cron": spec.cron,
-        "timezone": spec.timezone,
-        "prompt": spec.prompt,
-        "metadata": _metadata(spec, metadata),
-    }
-    current = {**schedule, "metadata": metadata}
-    return {key: value for key, value in wanted.items() if current.get(key) != value}
+    wanted = {"cron": spec.cron, "timezone": spec.timezone, "prompt": spec.prompt}
+    return {key: value for key, value in wanted.items() if schedule.get(key) != value}
 
 
 async def _ensure(runtime: ManagedRuntime, spec: PersonalSchedule, items: list[dict]):
@@ -107,7 +93,7 @@ async def _create(runtime: ManagedRuntime, spec: PersonalSchedule, *, paused=Fal
         timezone=spec.timezone,
         new_thread=spec.new_thread,
         prompt=spec.prompt,
-        metadata=_metadata(spec),
+        metadata={"kind": spec.key},
         paused=paused,
     )
 

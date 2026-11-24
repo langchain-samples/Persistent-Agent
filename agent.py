@@ -21,10 +21,6 @@ from tools.schedules import cancel_schedule, list_schedules, schedule
 HERE = Path(__file__).parent
 INSTRUCTIONS = (HERE / "instructions.md").read_text().strip()
 
-# Every person gets these, created on their DM, as them, and protected from the
-# schedule tools. See middleware/per_user_schedules.py.
-personal_schedules = per_user_schedules([HEARTBEAT, DREAMING])
-
 
 async def agent(runtime: ManagedServerRuntime):
     install()
@@ -34,7 +30,8 @@ async def agent(runtime: ManagedServerRuntime):
         # LLM Gateway by default, so LANGSMITH_API_KEY is the only key.
         model=os.environ.get("AGENT_MODEL", "langsmith:anthropic/claude-opus-5-5"),
         instructions=INSTRUCTIONS,
-        middleware=[personal_schedules],
+        # Every person gets these, created on their DM, as them.
+        middleware=[per_user_schedules([HEARTBEAT, DREAMING])],
         tools=[
             schedule,
             list_schedules,

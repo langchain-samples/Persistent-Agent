@@ -1,8 +1,8 @@
 """Each person's nightly dreaming: consolidates their buffered notes into memory.
 
 It runs as the person in a fresh thread each night and stays quiet. It's created
-on their first DM by middleware/per_user_schedules.py and protected from the
-schedule tools. What it does is in skills/dreaming/SKILL.md.
+on their first DM by middleware/per_user_schedules.py. What it does is in
+skills/dreaming/SKILL.md.
 """
 
 from middleware.per_user_schedules import PersonalSchedule

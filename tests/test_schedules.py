@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
-from tools.schedules import cancel_schedule, list_schedules, schedule
+from tools.schedules import list_schedules, schedule
 
 
 class ScheduleTests(unittest.IsolatedAsyncioTestCase):
@@ -103,34 +103,3 @@ class ScheduleTests(unittest.IsolatedAsyncioTestCase):
         for kind in ["heartbeat", "dreaming", "task"]:
             self.assertIn(kind, result)
         self.assertIn("[playbook morning-brief]", result)
-
-    async def test_built_in_schedules_are_listed_but_cannot_be_cancelled(self):
-        records = {
-            kind: {
-                "id": kind,
-                "metadata": {"kind": kind, "protected": kind != "task"},
-                "cron": "0 * * * *",
-                "paused": False,
-                "prompt": kind,
-            }
-            for kind in ["heartbeat", "dreaming", "task"]
-        }
-        self.runtime.schedules.get = AsyncMock(
-            side_effect=lambda id, owner: records[id]
-        )
-        self.runtime.schedules.delete = AsyncMock()
-        self.runtime.schedules.list = AsyncMock(
-            return_value={"items": list(records.values())}
-        )
-        listed = await list_schedules.coroutine(self.runtime)
-        self.assertIn("[built-in heartbeat, can't be cancelled]", listed)
-        for kind in ["heartbeat", "dreaming"]:
-            result = await cancel_schedule.coroutine(kind, self.runtime)
-            self.assertIn("can't be cancelled", result)
-        self.runtime.schedules.delete.assert_not_awaited()
-        self.assertEqual(
-            await cancel_schedule.coroutine("task", self.runtime), "Cancelled task."
-        )
-        self.runtime.schedules.delete.assert_awaited_once_with(
-            "task", owner={"type": "user"}
-        )
