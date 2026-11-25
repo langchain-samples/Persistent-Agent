@@ -121,7 +121,7 @@ refer to this same workspace.
 
 1. In **Settings**, select **Organization → API Keys**.
 2. Click **Create API key**.
-3. Enter a description, such as `persistent-agent-local`.
+3. Enter a description, such as `persistent-agent`.
 4. Choose **Personal Access Token**.
 5. Set **Default Workspace** to the workspace from step 1 and choose an expiration.
 6. Click **Create API Key** and copy the value shown once into `LANGSMITH_API_KEY` in `.env`.
