@@ -18,6 +18,10 @@ follows up on their goals, runs their recurring work and uses the apps they conn
 [Managed Deep Agents](https://docs.langchain.com/langsmith/python/managed-deep-agents-overview)
 (MDA).
 
+<img src="docs/images/slack-welcome.png" alt="A first Slack conversation: the agent greets Liam, lists his connected apps, and offers a Morning Brief, Weekly Planner, and Watchlist" width="960">
+
+*An example welcome message in Slack. Available apps depend on the tools you add and the accounts you connect.*
+
 **Features include:**
 
 - **Personal memory**: preferences and decisions, private to each person's DM
