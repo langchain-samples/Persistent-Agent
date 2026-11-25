@@ -4,10 +4,13 @@
 !.env.example
 *.pem
 *.key
+*.crt
+credentials.json
 
 # Build output and local state.
 .mda/
 .venv/
+node_modules/
 __pycache__/
 .ruff_cache/
 .DS_Store

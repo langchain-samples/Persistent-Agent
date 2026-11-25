@@ -36,29 +36,417 @@ Each is a few lines on top of an MDA primitive. Keep what you need and delete th
 
 ## Quickstart
 
-You need [uv](https://docs.astral.sh/uv/), a [LangSmith](https://smith.langchain.com) workspace
-on a Plus or Enterprise plan, an Anthropic or OpenAI API key, and a Slack workspace where you
-can install an app.
+Deploy one Slack bot, then let each teammate connect their own apps. This quickstart uses
+**your own Anthropic API key** for model calls. You do not need to configure the LLM Gateway.
 
-1. Clone it and create your `.env`:
+You need:
 
-   ```bash
-   git clone git@github.com:langchain-samples/Persistent-Agent.git
-   cd Persistent-Agent
-   uv sync
-   cp .env.example .env
+- [Git with GitHub SSH access](https://docs.github.com/en/authentication/connecting-to-github-with-ssh),
+  [uv](https://docs.astral.sh/uv/getting-started/installation/), and Python 3.11 or later.
+- A [LangSmith](https://smith.langchain.com) workspace with Managed Deep Agents and access to
+  deploy agents. Tool Gateway requires a **Plus or Enterprise** plan; creating workspace
+  servers and kits requires **Workspace Admin** access.
+- An [Anthropic API key](https://console.anthropic.com/settings/keys) with model access and
+  API billing enabled. A Claude chat subscription alone does not supply an API key.
+- A Slack workspace where you can install an app, or an admin who can approve it.
+
+### 1. Clone and install
+
+```bash
+git clone git@github.com:langchain-samples/Persistent-Agent.git
+cd Persistent-Agent
+uv sync
+cp .env.example .env
+```
+
+### 2. Get your LangSmith key and connect Tool Server
+
+In LangSmith, select the workspace you will deploy into:
+
+- **Get an API key:** open **Settings → Organization → API Keys → Create API key** and
+  choose **Personal Access Token**. Copy the key and your workspace ID.
+  [Show me each step →](#langsmith-api-key-and-workspace)
+- **Connect tools:** open **Tools → MCP servers**, add or connect a server, then create a
+  **Workspace** tool kit under **Tool kits**. Copy the kit's **MCP URL**.
+  [Show me each step →](#tool-server-setup)
+
+Start with the public documentation server in the walkthrough if you just want to verify the
+setup. Add Google, Linear, GitHub, and your other apps afterward.
+
+### 3. Fill in `.env`
+
+Open `.env` in your editor. **Replace or uncomment the corresponding entries** so there is
+only one active line per variable. Replace every `<...>` placeholder with your own value:
+
+```dotenv
+LANGSMITH_API_KEY=<your-langsmith-personal-access-token>
+LANGSMITH_WORKSPACE_ID=<your-workspace-id>
+
+AGENT_MODEL=anthropic:claude-sonnet-4-6
+ANTHROPIC_API_KEY=<your-anthropic-api-key>
+
+TOOLS_MCP_URL=<the-mcp-url-copied-from-your-tool-kit>
+```
+
+Leave `TOOLS_PROFILE` unset so tools use each person's own connected accounts.
+Keep `.env` private; it is ignored by Git.
+
+> [!IMPORTANT]
+> Set `AGENT_MODEL` explicitly as shown. Adding `ANTHROPIC_API_KEY` alone does **not** switch
+> providers: `agent.py` falls back to a `langsmith:` model when `AGENT_MODEL` is absent.
+> [Use OpenAI instead, or opt into the LLM Gateway →](#model-options)
+
+### 4. Deploy and say hello
+
+```bash
+uv run mda deploy
+```
+
+Follow the terminal prompts. If it prints a Slack authorization link, open it, choose your
+Slack workspace, approve the app, then return to the terminal and press **Enter**.
+Wait for deployment to finish, then open the agent's Slack DM and send **“hi”**.
+[Detailed Slack setup and first-run checks →](#deploy-and-connect-slack)
+
+**You're ready when:** the deployment is ready in LangSmith, the bot replies in Slack, and
+it can use a tool from your kit. For the starter documentation tool, ask:
+
+> Use the LangChain documentation tool to explain how Managed Deep Agents schedules work.
+
+---
+
+## Detailed setup
+
+- [LangSmith API key and workspace](#langsmith-api-key-and-workspace)
+- [Tool Server: add a server, connect an account, create a kit, copy its URL](#tool-server-setup)
+- [Deploy and connect Slack](#deploy-and-connect-slack)
+- [Model options, including the optional LLM Gateway](#model-options)
+- [Troubleshooting](#setup-troubleshooting)
+
+Screenshots below show the LangSmith UI captured on November 25, 2026. They are cropped to
+focus on the relevant controls. Names such as **Demo Workspace** are examples; use your own
+workspace throughout.
+
+## LangSmith API key and workspace
+
+There are three different kinds of access involved. Setting up one does not configure the others:
+
+| What you need | What it does | Where it goes |
+|---|---|---|
+| **LangSmith API key** | Authenticates the CLI to LangSmith for deployment and local development. | `LANGSMITH_API_KEY` in `.env`. |
+| **Model provider API key** | Pays for and authorizes model calls, such as Anthropic or OpenAI. | `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` in `.env` for the direct-provider setup. |
+| **Connected app account** | Lets tools access a person's Google, Linear, GitHub, or other account. | Connected in LangSmith or through the bot's sign-in link; not pasted into `.env`. |
+
+### 1. Choose your workspace and copy its ID
+
+1. Open [LangSmith](https://smith.langchain.com) and select your organization and workspace
+   using the selector at the top left.
+2. Open **Settings** and select **Workspace**.
+3. Check the workspace name, then click the copy icon next to it (**Copy workspace ID**).
+4. Put that value in `.env` as `LANGSMITH_WORKSPACE_ID`.
+
+<img src="docs/images/setup/workspace-id.jpg" alt="Workspace settings with the Workspace tab selected and a copy icon beside Demo Workspace" width="350">
+
+Use the **workspace ID**, not the organization ID. In the classic settings UI, the workspace
+ID is under **Settings → Workspace → General**. The key, tool kit, and deployment should all
+refer to this same workspace.
+
+### 2. Create a personal access token for the quickstart
+
+1. In **Settings**, select **Organization → API Keys**.
+2. Click **Create API key**.
+3. Enter a description, such as `persistent-agent-local`.
+4. Choose **Personal Access Token**.
+5. Set **Default Workspace** to the workspace from step 1 and choose an expiration.
+6. Click **Create API Key** and copy the value shown once into `LANGSMITH_API_KEY` in `.env`.
+
+<img src="docs/images/setup/personal-access-token.jpg" alt="Create an API Key dialog with Personal Access Token selected, a default workspace, and expiration options" width="720">
+
+**Check before continuing:** `.env` has both `LANGSMITH_API_KEY` and
+`LANGSMITH_WORKSPACE_ID`. A personal access token inherits your permissions; it does not
+make you a workspace admin if you were not already one.
+
+### Workspace scope versus organization scope
+
+**Key type** answers “who is calling?” **Scope** answers “which workspaces can they access?”
+
+| Key choice | When to use it | Workspace behavior |
+|---|---|---|
+| **Personal Access Token** | This interactive quickstart and local Studio testing. | Inherits your access. The default workspace is a routing default, not a restriction to that workspace. Set `LANGSMITH_WORKSPACE_ID` explicitly. |
+| **Service Key → Specific Workspaces** | Automation or CI that deploys to selected workspaces. | Select the target workspace and suitable roles. Prefer a single workspace when that is all the automation needs. |
+| **Service Key → Full Organization** | Automation that actually needs organization-wide access. | Broader scope; still set `LANGSMITH_WORKSPACE_ID` to select the deployment's destination. |
+| **Tracing Only** | Writing traces. | Insufficient for this deployment quickstart. |
+
+For a service key, the creation dialog has a separate **Scope for Service Key** setting:
+
+<img src="docs/images/setup/service-key-scope.jpg" alt="Service Key selected with Specific Workspaces scope, organization role, selected workspace, and workspace role" width="720">
+
+The role shown in the screenshot is the form's default, not a promise that it can perform
+every setup action. Your deployment automation needs the permissions for the resources it
+creates. Creating Tool Gateway servers and kits uses your signed-in user in the UI (or a
+personal access token through the API); a service key cannot create those resources.
+
+Setting `LANGSMITH_WORKSPACE_ID` selects a workspace. It does **not** expand a key's access,
+turn a PAT into a service key, or change an organization-scoped key into a workspace-scoped key.
+For gateway-specific key requirements, see [the optional gateway setup](#optional-use-the-llm-gateway).
+
+See [LangSmith API keys](https://docs.langchain.com/langsmith/create-account-api-key) for
+permissions and key lifecycle details.
+
+## Tool Server setup
+
+The feature called **Tool Server** in this walkthrough is documented as
+[Tool Gateway](https://docs.langchain.com/langsmith/tool-gateway) and appears as **Tools** in
+LangSmith. It connects the agent to apps. The **LLM Gateway** handles model calls and is a
+separate, optional feature.
+
+You will do four things: **add a server → connect your account if required → select tools in
+a kit → copy the kit's MCP URL into `.env`**. LangSmith hosts this layer; you do not run a
+separate Tool Server process on your laptop.
+
+### 1. Add your first MCP server
+
+For a first test, use the public LangChain documentation server. It needs no Google, Linear,
+or GitHub login and gives you a concrete tool to test after deployment.
+
+1. Open **Tools** in the LangSmith sidebar, then select **MCP servers**.
+2. Select **You** under **Connected as**, and **Workspace** for server scope.
+3. Search for `docs-langchain`. If your workspace already has the server at
+   `https://docs.langchain.com/mcp`, use it and skip adding a duplicate.
+4. Otherwise, click **Add MCP server** and enter:
+
+   | Field | Value |
+   |---|---|
+   | **Name** | `docs-langchain` |
+   | **URL** | `https://docs.langchain.com/mcp` |
+   | **Authentication** | **Public** |
+
+5. Click **Add server** at the bottom of the panel.
+
+<img src="docs/images/setup/public-server.jpg" alt="Add MCP server filled with docs-langchain, https://docs.langchain.com/mcp, and Public authentication" width="704">
+
+**Expected result:** the server appears as **Connected**. Public servers do not have an
+account sign-in step. Continue to [create your tool kit](#3-create-a-workspace-tool-kit),
+or add the apps you want below first.
+
+### 2. Add apps and connect your account
+
+For a built-in integration, search for it under **MCP servers** and use its **Connect** button.
+For a remote server, add the service's MCP URL. For example, to add Linear:
+
+1. In **Tools → MCP servers**, keep **You** and **Workspace** selected.
+2. Search for an existing Linear server first. If none exists, click **Add MCP server**.
+3. Enter **Name:** `Linear` and **URL:** `https://mcp.linear.app/mcp`.
+4. Select **OAuth**, leave **OAuth Setup** as **Automatic OAuth**, and click **Add server**.
+
+<img src="docs/images/setup/add-mcp-server.jpg" alt="Linear MCP server setup with OAuth and Automatic OAuth selected" width="704">
+
+5. Back in the server list, click **Connect** on the Linear row.
+6. In the provider's sign-in page, choose the account/workspace you want to connect and
+   review and approve the requested access.
+7. Wait for LangSmith's authentication success page, then return to **MCP servers**.
+8. Confirm the server now shows **Connected** before creating or editing a tool kit.
+
+Repeat for other services you want the agent to use. Each service has its own permissions
+and approval flow. You only need to connect the services you intend to add.
+
+#### Why do I have to connect before I can add tools for my users?
+
+The kit editor needs to discover the server's tools. An authenticated server can require
+**your connection to load that list**, even though the kit is intended for other people.
+An unconnected server can show exactly this message:
+
+<img src="docs/images/setup/connect-before-tools.jpg" alt="Linear is Not connected and says: Tool preview is unavailable. Connect to load the tool list." width="672">
+
+There are two separate steps:
+
+- **You, the kit creator:** connect an account so the editor can load the tools and let you
+  select them. This is setup-time tool discovery.
+- **Each person using the bot:** connect their own account through the bot's private
+  sign-in link. This is the account used for their tool calls.
+
+Choosing **Workspace** for the kit shares its tool selection; it does not by itself share
+your personal OAuth credentials. Keep `TOOLS_PROFILE` unset for this per-person setup.
+For a custom server that uses API keys, choose per-person credentials if each person should
+use their own access; workspace credentials or a shared profile deliberately use shared access.
+
+If the picker is empty, go back to **MCP servers**, finish **Connect**, and reopen the kit
+editor. If it reports a rejected workspace credential, the workspace admin must fix that
+server's credential; creating another kit will not fix it.
+
+### 3. Create a workspace tool kit
+
+1. Open **Tools → Tool kits**.
+2. Select **Workspace**, then click **Create tool kit**.
+3. Name the kit `persistent-agent`.
+4. Under **Who can use this tool kit**, select **Workspace**.
+
+<img src="docs/images/setup/create-tool-kit.jpg" alt="Create tool kit named persistent-agent with Workspace selected so everyone in the workspace can use it" width="704">
+
+**Use Workspace for this shared bot.** A Personal kit is visible and usable only by its owner,
+and a workspace kit can include only workspace servers and built-in integrations. If you
+cannot create a workspace kit, ask a workspace admin to create it for this deployment.
+
+5. Search or filter by server and check the tools you want to include. For the starter
+   example, search `search_docs` and check **search_docs_by_lang_chain** from **docs-langchain**.
+   For your apps, select the read/search tools you want to start with; add write tools when needed.
+
+<img src="docs/images/setup/select-tool.jpg" alt="Tool picker with search_docs_by_lang_chain selected from the docs-langchain server" width="704">
+
+6. Click **Review tool selection** at the bottom of the panel.
+7. Confirm the selected tools, leave custom labels blank unless you need them, and click
+   **Create tool kit**.
+
+**Expected result:** your kit appears in the **Workspace** list with at least one tool.
+A kit with zero tools does not give the agent any app capabilities.
+
+### 4. Copy the kit's MCP URL into `.env`
+
+1. Click your kit's name to open its details.
+2. Find **MCP URL** and click the copy icon beside it.
+3. Paste that complete URL into `TOOLS_MCP_URL` in `.env`.
+
+<img src="docs/images/setup/kit-mcp-url.jpg" alt="An example saved tool kit showing its tools and the MCP URL copy button; the example URL is redacted" width="672">
+
+*This screenshot uses an existing example kit. Open your own `persistent-agent` kit and copy
+its URL; do not copy a URL from a screenshot.*
+
+For the GCP US region, the URL has this shape:
+
+```dotenv
+TOOLS_MCP_URL=https://api.smith.langchain.com/v1/managed-tools/kits/<your-kit-id>/mcp
+```
+
+Use the URL LangSmith gives you, including your region's host. It is **not** the browser's
+`smith.langchain.com/.../tools` address or the upstream service's MCP URL.
+
+[`tools/mcp.py`](tools/mcp.py) already connects this kit with LangSmith authentication and
+adds `?mode=search` so the agent can find relevant tools. You do not need to paste the UI's
+sample MCP code into the project or put an API key in the URL.
+
+**Check before deploying:** the kit and `LANGSMITH_WORKSPACE_ID` belong to the same workspace,
+the kit contains tools, and `TOOLS_PROFILE` is unset. After changing `.env`, run
+`uv run mda deploy` again to update the deployment.
+
+### 5. Let each teammate connect their own apps
+
+After the bot is deployed:
+
+1. Have the teammate open a **DM** with the bot and send “hi”.
+2. If the bot sends a connection link, have that teammate open it and sign in to their own
+   account. Do not forward your own connection link to them.
+3. Complete the requested connections, return to the DM, and retry the request if needed.
+4. Test a read-only request, such as “List my Linear issues,” using an app in your kit.
+
+The template does not enable just-in-time MCP authentication, so missing connections may be
+requested before the first run starts. For an easy first run, keep the kit small. Public
+servers such as the documentation server need no per-person connection.
+
+The Slack bot installation and a person's Slack **tool** connection are separate: installing
+the bot makes it reachable in Slack; connecting a tool account authorizes that person's tool use.
+
+## Deploy and connect Slack
+
+The repository already includes the Slack channel declaration in
+[`channels/slack.py`](channels/slack.py). You do not need to write a Slack app manifest or
+add bot tokens to `.env` for this managed setup.
+
+1. From the repository directory, run `uv run mda deploy`.
+2. Follow any workspace selection prompts and confirm the target is the workspace used
+   for your API key and tool kit.
+3. If the terminal prints a Slack authorization link, open it and select the intended
+   Slack workspace. Review the requested permissions and approve the app. If your workspace
+   requires admin approval, have the admin complete it before continuing.
+4. Return to the terminal and press **Enter** when prompted. If Slack is already authorized,
+   this authorization step may be skipped.
+5. Wait for the CLI to finish. Open its deployment dashboard URL and check that the
+   deployment is ready. If it fails, open the revision logs before retrying.
+6. Open the bot's DM in Slack. It may send the first message after deployment; otherwise,
+   find it under Slack's apps and send “hi”. Complete any personal app connection prompts.
+7. Ask the documentation question from the quickstart, or a read-only question for another
+   tool you selected. In LangSmith Studio or the run trace, confirm a tool call appears and
+   the bot returns an answer.
+
+`mda deploy` reads `.env` and forwards non-reserved settings and provider keys to the hosted
+deployment. The LangSmith key authenticates deployment; the hosted runtime manages its own
+platform authentication. You do not need to keep the terminal running after deployment.
+
+Once DMs work, add the bot to a channel if you want shared conversations. This template uses
+watch mode there: it reads messages and stays quiet when it has nothing useful to add.
+
+## Model options
+
+### Use your own provider key
+
+Choose **one** configuration in `.env` and redeploy. Both provider packages are already
+included in this repository.
+
+**Anthropic (the quickstart):**
+
+```dotenv
+AGENT_MODEL=anthropic:claude-sonnet-4-6
+ANTHROPIC_API_KEY=<your-anthropic-api-key>
+```
+
+**OpenAI:**
+
+```dotenv
+AGENT_MODEL=openai:gpt-6.1-sol
+OPENAI_API_KEY=<your-openai-api-key>
+```
+
+Use a model your provider account can access. Keep `LANGSMITH_API_KEY`,
+`LANGSMITH_WORKSPACE_ID`, and `TOOLS_MCP_URL` from the quickstart in either case. They still
+configure deployment and tools even when model calls go directly to the provider.
+
+### Optional: use the LLM Gateway
+
+Skip this section if you followed the direct-provider quickstart. The gateway is useful
+when your team wants centrally managed model credentials and policies.
+
+1. In LangSmith, select the **same workspace** as your deployment.
+2. In **Settings → Workspace → Secrets**, add your provider key as a workspace secret
+   named `ANTHROPIC_API_KEY` (or the name required by your provider). The gateway reads it
+   from that workspace; a key only in your local `.env` does not configure the gateway.
+3. Make sure the LangSmith key used for local gateway access is **workspace-scoped** and
+   has `gateway:invoke` and `workspaces:read`. For a PAT, the gateway uses its **Default
+   Workspace**; for a service key, choose **Specific Workspaces** and just this workspace.
+   Organization-scoped keys are not supported by the gateway. Setting
+   `LANGSMITH_WORKSPACE_ID` does not change that.
+4. Use **LLM Gateway → Simulator** to verify that the selected model works in that workspace.
+5. Set the model in `.env`, then redeploy:
+
+   ```dotenv
+   AGENT_MODEL=langsmith:anthropic/claude-opus-5-5
    ```
 
-2. **Get a LangSmith API key** and set `LANGSMITH_API_KEY`. ([Which key?](#langsmith-api-key))
-3. **Create a Tool Gateway kit** and set `TOOLS_MCP_URL` to its MCP URL. ([Step by step](#tool-gateway))
-4. **Add your model key**: `ANTHROPIC_API_KEY`. ([Other models](#model))
-5. Deploy:
+This is the repository's current fallback model. Use a model available in your gateway.
+To switch back, set a direct `anthropic:` or `openai:` model plus its provider key as shown
+above, and redeploy.
 
-   ```bash
-   uv run mda deploy
-   ```
+See [gateway setup](https://docs.langchain.com/langsmith/llm-gateway-admin-setup),
+[authentication](https://docs.langchain.com/langsmith/llm-gateway-authentication), and
+[provider keys](https://docs.langchain.com/langsmith/llm-gateway-provider-authentication).
 
-   Open the Slack link the deploy prints, approve the app, and DM it "hi".
+## Setup troubleshooting
+
+| What you see | What to check |
+|---|---|
+| `Permission denied (publickey)` while cloning | [Add an SSH key to GitHub](https://docs.github.com/en/authentication/connecting-to-github-with-ssh). If you prefer HTTPS, use `git clone https://github.com/langchain-samples/Persistent-Agent.git`. |
+| No **Tools** page or workspace kit creation unavailable | Check the LangSmith plan, supported region, selected workspace, and Workspace Admin access. See [Tool Gateway availability](https://docs.langchain.com/langsmith/tool-gateway). |
+| No tools in the kit picker | Connect the server as **You** first. Check the **Workspace/Personal** scope and server filter, then reopen the editor. A registered OAuth server alone is not a connected account. |
+| “Tool preview is unavailable” | Finish the provider's **Connect** flow, wait for success, and return to LangSmith. |
+| A server reports an invalid workspace credential | Ask its workspace admin to update that server's credential; retry loading tools afterward. |
+| LangSmith `401` / `403`, or deployment goes to the wrong workspace | Check key expiration, key permissions, `LANGSMITH_WORKSPACE_ID`, and region. A tracing-only key cannot deploy. |
+| Model authentication error or unexpected LLM Gateway error | Check that there is one active `AGENT_MODEL` line. Use `anthropic:...` with `ANTHROPIC_API_KEY`, or `openai:...` with `OPENAI_API_KEY`, then redeploy. |
+| Bot replies but cannot use apps | Confirm `TOOLS_MCP_URL` is the saved kit's MCP URL, the kit contains tools, and the deployment was updated after changing `.env`. Finish the caller's connection prompts. |
+| A teammate cannot use your kit | Use a **Workspace** kit with workspace servers or built-in integrations. Keep `TOOLS_PROFILE` unset and have the teammate connect their own accounts. |
+| Bot asks you to connect before it answers | The kit includes authenticated servers you have not connected. Complete the DM links or start with the public documentation tool only. |
+| Slack authorization does not finish | Complete Slack admin approval, then return to the terminal and press Enter when prompted. |
+| `Cannot change target.agent_id on an existing channel` | Keep the agent name the Slack app was created with, or follow the [architecture troubleshooting](docs/architecture.md#troubleshooting) before recreating the integration. |
+
+For another LangSmith region, set `LANGSMITH_ENDPOINT` before the first deployment using the
+[region table](https://docs.langchain.com/langsmith/python/managed-deep-agents-deploy#select-a-saas-region).
+Use keys and a tool kit from that same region.
 
 ## Use it
 
@@ -89,70 +477,6 @@ anything, and offers help only rarely.
 
 Edit [`instructions.md`](instructions.md) and the [`skills/`](skills/), then `uv run mda deploy`
 again. Add a playbook by adding a skill whose description starts with "Playbook:".
-
-## Setup in detail
-
-### LangSmith API key
-
-The key in `.env` deploys the agent from your machine. It's never uploaded: the deployed agent
-gets its own key from LangSmith.
-
-Use a **personal access token** (starts with `lsv2_pt_`): in LangSmith go to
-[Settings → API Keys](https://smith.langchain.com/settings), click **Create API Key**, and
-choose **Personal Access Token**. The same key also creates the Tool Gateway kit below, which a
-service key can't do.
-
-| Key | Prefix | Use it for |
-|---|---|---|
-| Personal access token | `lsv2_pt_` | Deploying, and creating Tool Gateway servers and kits. Acts as you. |
-| Service key | `lsv2_sk_` | Deploying from CI. Can't create Tool Gateway servers or kits. |
-
-**Workspace or organization scope.** A personal access token works in the workspace you're
-signed in to. A service key is scoped to specific workspaces or to the whole organization. If
-your key covers more than one workspace, also set `LANGSMITH_WORKSPACE_ID` (Settings →
-General → Workspace ID) to the one you deploy to.
-
-### Tool Gateway
-
-[Tool Gateway](https://docs.langchain.com/langsmith/tool-gateway) gives the agent everyone's
-apps through one URL, a **tool kit**. Each person's tools run with their own account, connected
-from Slack the first time the agent needs it. You set up the kit once. Creating a
-workspace-wide kit needs the Workspace Admin role.
-
-1. **Pick your apps.** Go to **Tools → MCP servers**. Gmail, Google Calendar, Drive, Docs,
-   Sheets, Slack, GitHub, Linear and more are built in. To add another app's MCP server, click
-   **Add MCP server**, enter its URL, and choose how it signs in (usually **OAuth**).
-2. **Connect your own account to each one.** Click **Connect** on each app's row and sign in.
-   A kit learns an app's tools through the account of the person who creates it; if you're not
-   connected, the kit shows a single `connect_<app>` placeholder instead of the app's tools.
-   Your teammates don't need to do this step.
-3. **Create the kit.** Go to **Tools → Tool kits**, click **Create tool kit**, name it, and
-   choose **Workspace** so your teammates can use it. Select the tools the agent should have,
-   click **Review tool selection**, then **Create tool kit**.
-4. **Copy the kit's MCP URL** into `.env`:
-
-   ```bash
-   TOOLS_MCP_URL=https://api.smith.langchain.com/v1/managed-tools/kits/<kit-id>/mcp
-   ```
-
-To change the agent's apps later, edit the kit; no redeploy needed. Test with a personal account
-that isn't tied to your work apps: that's how your teammates will meet it. More in the
-[Tool Gateway quickstart](https://docs.langchain.com/langsmith/tool-gateway-quickstart).
-
-### Model
-
-By default the agent calls Anthropic directly with your key. In `.env`:
-
-```bash
-AGENT_MODEL=anthropic:claude-opus-5-5
-ANTHROPIC_API_KEY=sk-ant-...
-```
-
-For OpenAI, set `AGENT_MODEL=openai:gpt-6.2-sol` and `OPENAI_API_KEY` instead.
-
-To run models through the [LangSmith LLM Gateway](https://docs.langchain.com/langsmith/llm-gateway)
-instead, with no provider key in `.env`, remove `AGENT_MODEL` and the provider key, and add an
-Anthropic provider secret in your workspace's LLM Gateway settings.
 
 ---
 
