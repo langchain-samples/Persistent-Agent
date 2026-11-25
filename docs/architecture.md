@@ -101,8 +101,8 @@ with the conversation so far.
   tool runs.
 - **Accounts for unattended runs:** set `TOOLS_PROFILE` to a LangSmith profile with its own
   logins and a teammate's permissions, not an admin's.
-- **Model:** set `AGENT_MODEL` and that provider's key in `.env` to skip the gateway (see
-  `.env.example`).
+- **Model:** `AGENT_MODEL` and its provider key in `.env`; see [Model](../README.md#model) for
+  OpenAI or the LLM Gateway.
 - **Dreaming time:** change the cron and timezone in `dreaming.py`.
 - **[Local development](https://docs.langchain.com/langsmith/python/managed-deep-agents-local-development):**
   `uv run mda dev` runs it with LangSmith Studio.
