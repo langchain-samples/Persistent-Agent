@@ -22,14 +22,14 @@ it can run in the background to take work off your plate. Built on
 
 **Features include:**
 
-- **Personal memory**: preferences and decisions, private to each person's DM
-- **Goals that follow through**: an hourly heartbeat moves each goal forward until it's done
-- **Dreaming**: every night, the day's notes become long-term memory
-- **Playbooks**: Morning Brief, Weekly Planner and Watchlist, once or on a schedule
-- **Watch mode**: in channels it reads everything and speaks up only when it can help
-- **Background work**: research and review subagents run while you keep talking
-- **Integrations**: Google, Slack, Linear, GitHub and more through Tool Gateway
-- **A browser per person**: it works on websites and hands you the browser when it needs you
+- **Personal memory**: remembers each user's preferences and decisions
+- **Goals**: tracks each user's goals in memory and works in the background to advance them
+- **Dreaming**: runs a nightly job to clean up and consolidate memory
+- **Playbooks**: give it the workflows and organizational knowledge you want your team to adopt
+- **Watch mode**: reads every message in channels and speaks up only when it can help
+- **Background work**: runs research and review subagents asynchronously
+- **Integrations**: uses LangSmith Tool Gateway to access tools such as Gmail, GitHub, Slack, and Linear
+- **Browser use**: interacts with websites through a browser
 
 ## Quickstart
 
