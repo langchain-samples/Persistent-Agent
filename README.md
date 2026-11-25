@@ -36,8 +36,8 @@ it can run in the background to take work off your plate. Built on
 **What you need for this setup:**
 
 - **Local tools:** Git and [uv](https://docs.astral.sh/uv/getting-started/installation/) for the commands below. uv can install Python for you.
-- **LangSmith:** a Plus or Enterprise workspace with Managed Deep Agents enabled and Workspace Admin access.
-- **Model access:** an Anthropic or OpenAI API key with API billing, or a configured LangSmith LLM Gateway. [Model options →](#model-options)
+- **LangSmith:** a Plus or Enterprise workspace with Managed Deep Agents enabled.
+- **Model access:** an Anthropic API key, an OpenAI API key, or a configured LangSmith LLM Gateway. [Model options →](#model-options)
 - **Slack:** a workspace where you or an admin can install the bot.
 
 The quickstart uses **Claude Opus directly** by default.
