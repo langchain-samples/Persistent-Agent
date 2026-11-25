@@ -84,8 +84,9 @@ Keep `.env` private.
 uv run mda deploy
 ```
 
-Run this from the repository directory. The CLI reads `.env` automatically, so you do not
-need to export `LANGSMITH_API_KEY` separately. [Environment loading help →](#does-deploy-need-an-exported-api-key)
+Run this from the repository directory with your PAT saved in `.env`. If your shell already
+exports a LangSmith key, follow the [environment loading help](#does-deploy-need-an-exported-api-key)
+to avoid deploying with the wrong credential.
 
 Open the Slack authorization link if prompted, approve the app, then return to the terminal
 and press **Enter**. When deployment finishes, DM the bot **“hi”** and follow any app
@@ -108,7 +109,7 @@ workspace throughout.
 ## LangSmith API key and workspace
 
 **Use a Personal Access Token (PAT) for this setup.** If you already created one,
-keep using it in `LANGSMITH_API_KEY`; you do not need a service key.
+keep using it in `LANGSMITH_API_KEY` throughout this walkthrough.
 
 There are three different kinds of access involved. Setting up one does not configure the others:
 
@@ -493,19 +494,20 @@ Use keys and a tool kit from that same region.
 
 ### Does deploy need an exported API key?
 
-No. Run `uv run mda deploy` from the repository directory after saving your PAT in `.env`.
-The CLI reads the project's `.env` before shell environment variables, so a key already
-exported by your shell should not override that file. See the
-[deployment environment documentation](https://docs.langchain.com/langsmith/python/managed-deep-agents-deploy#secrets-and-environment-files).
-
-If deployment only works after you export a key, check that you are in the repository
-directory and saved the file as `.env`. You can explicitly select it:
+The CLI supports reading your PAT from the project's `.env`. However, testing has also
+shown an exported shell key taking precedence, despite the
+[deployment documentation](https://docs.langchain.com/langsmith/python/managed-deep-agents-deploy#secrets-and-environment-files)
+describing `.env` first. If your shell automatically sets a LangSmith key, avoid relying
+on precedence: run this from the repository directory to remove both key variables from
+this command's environment and explicitly load your saved `.env`:
 
 ```bash
-uv run mda deploy --env-file .env
+env -u LANGSMITH_API_KEY -u LANGCHAIN_API_KEY uv run mda deploy --env-file .env
 ```
 
-If the behavior still differs, check `uv run mda --version` when reporting the issue.
+This leaves your shell's existing variables unchanged. Keep the PAT in `.env`; you do not
+need to paste it into a command. If authentication still fails, check the PAT's expiration,
+workspace access, and `uv run mda --version` when reporting the issue.
 The PAT authenticates your deployment request; it is not uploaded as a user-managed runtime
 secret. Platform-provided runtime credentials are separate and do not require you to create
 another key for this walkthrough.
