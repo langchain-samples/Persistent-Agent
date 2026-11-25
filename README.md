@@ -37,7 +37,7 @@ Each is a few lines on top of an MDA primitive. Keep what you need and delete th
 ## Quickstart
 
 Deploy one Slack bot, then let each teammate connect their own apps. This quickstart uses
-**your own Anthropic API key** for model calls. You do not need to configure the LLM Gateway.
+**Claude Opus with your own Anthropic API key** for model calls. You do not need to configure the LLM Gateway.
 
 You need:
 
@@ -82,7 +82,7 @@ only one active line per variable. Replace every `<...>` placeholder with your o
 LANGSMITH_API_KEY=<your-langsmith-personal-access-token>
 LANGSMITH_WORKSPACE_ID=<your-workspace-id>
 
-AGENT_MODEL=anthropic:claude-sonnet-4-6
+AGENT_MODEL=anthropic:claude-opus-5-5
 ANTHROPIC_API_KEY=<your-anthropic-api-key>
 
 TOOLS_MCP_URL=<the-mcp-url-copied-from-your-tool-kit>
@@ -92,8 +92,8 @@ Leave `TOOLS_PROFILE` unset so tools use each person's own connected accounts.
 Keep `.env` private; it is ignored by Git.
 
 > [!IMPORTANT]
-> Set `AGENT_MODEL` explicitly as shown. Adding `ANTHROPIC_API_KEY` alone does **not** switch
-> providers: `agent.py` falls back to a `langsmith:` model when `AGENT_MODEL` is absent.
+> Direct Opus is the default when `AGENT_MODEL` is unset or empty. To use GPT or the
+> LLM Gateway, set `AGENT_MODEL` to the matching option below and supply its credentials.
 > [Use OpenAI instead, or opt into the LLM Gateway →](#model-options)
 
 ### 4. Deploy and say hello
@@ -375,15 +375,28 @@ watch mode there: it reads messages and stays quiet when it has nothing useful t
 
 ## Model options
 
+All three options are supported by the installed dependencies. Choose one `AGENT_MODEL`;
+the agent does not automatically switch providers when a key is missing or a model fails.
+
+| Option | `AGENT_MODEL` | Credentials |
+|---|---|---|
+| **Claude Opus — default** | `anthropic:claude-opus-5-5` | `ANTHROPIC_API_KEY` in `.env`. |
+| **GPT — direct OpenAI** | `openai:gpt-6.1-sol` | `OPENAI_API_KEY` in `.env`. |
+| **LLM Gateway — Opus example** | `langsmith:anthropic/claude-opus-5-5` | LangSmith gateway access and an Anthropic provider secret in the deployment's workspace. |
+
+**Tool Gateway works with all three.** Keep the same `TOOLS_MCP_URL` to use your connected
+apps regardless of the selected model. The LLM Gateway selects and routes model calls;
+Tool Gateway supplies tools. Every option still needs LangSmith deployment access.
+
 ### Use your own provider key
 
 Choose **one** configuration in `.env` and redeploy. Both provider packages are already
 included in this repository.
 
-**Anthropic (the quickstart):**
+**Claude Opus (the default and quickstart):**
 
 ```dotenv
-AGENT_MODEL=anthropic:claude-sonnet-4-6
+AGENT_MODEL=anthropic:claude-opus-5-5
 ANTHROPIC_API_KEY=<your-anthropic-api-key>
 ```
 
@@ -419,8 +432,8 @@ when your team wants centrally managed model credentials and policies.
    AGENT_MODEL=langsmith:anthropic/claude-opus-5-5
    ```
 
-This is the repository's current fallback model. Use a model available in your gateway.
-To switch back, set a direct `anthropic:` or `openai:` model plus its provider key as shown
+This explicitly opts into gateway routing. You can use another model available in your
+gateway by changing the provider/model portion of the value. To switch back, set a direct `anthropic:` or `openai:` model plus its provider key as shown
 above, and redeploy.
 
 See [gateway setup](https://docs.langchain.com/langsmith/llm-gateway-admin-setup),

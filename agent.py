@@ -27,8 +27,8 @@ async def agent(runtime: ManagedServerRuntime):
     return define_deep_agent(
         # mda reads the name and the subagents' name/async without running this file.
         name="persistent-agent",
-        # LLM Gateway by default, so LANGSMITH_API_KEY is the only key.
-        model=os.environ.get("AGENT_MODEL", "langsmith:anthropic/claude-opus-5-5"),
+        # Direct Opus by default; AGENT_MODEL can select OpenAI or the LLM Gateway.
+        model=os.environ.get("AGENT_MODEL") or "anthropic:claude-opus-5-5",
         instructions=INSTRUCTIONS,
         # Every person gets these, created on their DM, as them.
         middleware=[PerUserSchedulesMiddleware(schedules=[HEARTBEAT, DREAMING])],
