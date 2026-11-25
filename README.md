@@ -495,6 +495,12 @@ Use keys and a tool kit from that same region.
 
 Add it to a channel and it stays quiet unless it can help. Mention it to ask directly.
 
+**Emoji reactions (coming in [PR #6](https://github.com/langchain-samples/Persistent-Agent/pull/6)):**
+The agent can pick an emoji reaction for each Slack message that starts a run, or skip the
+reaction. This happens in the background, so the reply does not wait for it. Set
+`REACTION_MODEL` to choose the reaction model, or set `reactions=False` in
+[`channels/slack.py`](channels/slack.py) to turn reactions off.
+
 ## FAQ
 
 ### Does everyone get their own agent?
