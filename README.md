@@ -36,19 +36,10 @@ Each is a few lines on top of an MDA primitive. Keep what you need and delete th
 
 ## Quickstart
 
-Deploy one Slack bot, then let each teammate connect their own apps. This quickstart uses
-**Claude Opus with your own Anthropic API key** for model calls. You do not need to configure the LLM Gateway.
-
-You need:
-
-- [Git with GitHub SSH access](https://docs.github.com/en/authentication/connecting-to-github-with-ssh),
-  [uv](https://docs.astral.sh/uv/getting-started/installation/), and Python 3.11 or later.
-- A [LangSmith](https://smith.langchain.com) workspace with Managed Deep Agents and access to
-  deploy agents. Tool Gateway requires a **Plus or Enterprise** plan; creating workspace
-  servers and kits requires **Workspace Admin** access.
-- An [Anthropic API key](https://console.anthropic.com/settings/keys) with model access and
-  API billing enabled. A Claude chat subscription alone does not supply an API key.
-- A Slack workspace where you can install an app, or an admin who can approve it.
+You need [GitHub SSH access](https://docs.github.com/en/authentication/connecting-to-github-with-ssh),
+[uv](https://docs.astral.sh/uv/getting-started/installation/), Python 3.11+, a LangSmith Plus or Enterprise workspace with Managed Deep Agents and Workspace Admin access,
+an [Anthropic API key](https://console.anthropic.com/settings/keys) with API billing enabled,
+and permission to install an app in Slack. This setup uses **Claude Opus directly**.
 
 ### 1. Clone and install
 
@@ -59,58 +50,34 @@ uv sync
 cp .env.example .env
 ```
 
-### 2. Get your LangSmith key and connect Tool Server
+### 2. Get a key and connect tools
 
-In LangSmith, select the workspace you will deploy into:
-
-- **Get an API key:** open **Settings → Organization → API Keys → Create API key** and
-  choose **Personal Access Token**. Copy the key and your workspace ID.
-  [Show me each step →](#langsmith-api-key-and-workspace)
-- **Connect tools:** open **Tools → MCP servers**, add or connect a server, then create a
-  **Workspace** tool kit under **Tool kits**. Copy the kit's **MCP URL**.
-  [Show me each step →](#tool-server-setup)
-
-Start with the public documentation server in the walkthrough if you just want to verify the
-setup. Add Google, Linear, GitHub, and your other apps afterward.
+- **Get a LangSmith API key and workspace ID.** [Step-by-step instructions →](#langsmith-api-key-and-workspace)
+- **Connect Tool Server and copy your tool kit's MCP URL.** [Step-by-step instructions →](#tool-server-setup)
 
 ### 3. Fill in `.env`
 
-Open `.env` in your editor. **Replace or uncomment the corresponding entries** so there is
-only one active line per variable. Replace every `<...>` placeholder with your own value:
+Replace the example values in `.env` with your own:
 
 ```dotenv
 LANGSMITH_API_KEY=<your-langsmith-personal-access-token>
 LANGSMITH_WORKSPACE_ID=<your-workspace-id>
-
 AGENT_MODEL=anthropic:claude-opus-5-5
 ANTHROPIC_API_KEY=<your-anthropic-api-key>
-
-TOOLS_MCP_URL=<the-mcp-url-copied-from-your-tool-kit>
+TOOLS_MCP_URL=<your-tool-kit-mcp-url>
 ```
 
-Leave `TOOLS_PROFILE` unset so tools use each person's own connected accounts.
-Keep `.env` private; it is ignored by Git.
+Keep `.env` private and leave `TOOLS_PROFILE` unset so each person uses their own app accounts.
 
-> [!IMPORTANT]
-> Direct Opus is the default when `AGENT_MODEL` is unset or empty. To use GPT or the
-> LLM Gateway, set `AGENT_MODEL` to the matching option below and supply its credentials.
-> [Use OpenAI instead, or opt into the LLM Gateway →](#model-options)
-
-### 4. Deploy and say hello
+### 4. Deploy and open Slack
 
 ```bash
 uv run mda deploy
 ```
 
-Follow the terminal prompts. If it prints a Slack authorization link, open it, choose your
-Slack workspace, approve the app, then return to the terminal and press **Enter**.
-Wait for deployment to finish, then open the agent's Slack DM and send **“hi”**.
-[Detailed Slack setup and first-run checks →](#deploy-and-connect-slack)
-
-**You're ready when:** the deployment is ready in LangSmith, the bot replies in Slack, and
-it can use a tool from your kit. For the starter documentation tool, ask:
-
-> Use the LangChain documentation tool to explain how Managed Deep Agents schedules work.
+Open the Slack authorization link if prompted, approve the app, then return to the terminal
+and press **Enter**. When deployment finishes, DM the bot **“hi”** and follow any app
+connection prompts. [Slack setup and first-run checks →](#deploy-and-connect-slack)
 
 ---
 
@@ -362,9 +329,13 @@ add bot tokens to `.env` for this managed setup.
    deployment is ready. If it fails, open the revision logs before retrying.
 6. Open the bot's DM in Slack. It may send the first message after deployment; otherwise,
    find it under Slack's apps and send “hi”. Complete any personal app connection prompts.
-7. Ask the documentation question from the quickstart, or a read-only question for another
-   tool you selected. In LangSmith Studio or the run trace, confirm a tool call appears and
-   the bot returns an answer.
+7. For the starter documentation kit, ask: **“Use the LangChain documentation tool to
+   explain how Managed Deep Agents schedules work.”** For another kit, ask a read-only
+   question using one of its tools. In LangSmith Studio or the run trace, confirm a tool
+   call appears and the bot returns an answer.
+
+**You’re ready when:** the deployment is ready, the bot replies in Slack, and a tool call
+succeeds using the caller’s connected account (or the public documentation server).
 
 `mda deploy` reads `.env` and forwards non-reserved settings and provider keys to the hosted
 deployment. The LangSmith key authenticates deployment; the hosted runtime manages its own
@@ -390,8 +361,10 @@ Tool Gateway supplies tools. Every option still needs LangSmith deployment acces
 
 ### Use your own provider key
 
-Choose **one** configuration in `.env` and redeploy. Both provider packages are already
-included in this repository.
+Choose **one** configuration in `.env` and redeploy. Replace or comment out the previous
+`AGENT_MODEL` line so there is only one active value. Direct Opus is the default when
+`AGENT_MODEL` is unset or empty. Both provider packages are already included in this repository.
+An Anthropic API key requires API billing; a Claude chat subscription alone does not supply it.
 
 **Claude Opus (the default and quickstart):**
 
@@ -444,6 +417,7 @@ See [gateway setup](https://docs.langchain.com/langsmith/llm-gateway-admin-setup
 
 | What you see | What to check |
 |---|---|
+| `Host key verification failed` while cloning | Complete [GitHub’s SSH connection check](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/testing-your-ssh-connection), verifying its published host fingerprint, or use the HTTPS clone command below. |
 | `Permission denied (publickey)` while cloning | [Add an SSH key to GitHub](https://docs.github.com/en/authentication/connecting-to-github-with-ssh). If you prefer HTTPS, use `git clone https://github.com/langchain-samples/Persistent-Agent.git`. |
 | No **Tools** page or workspace kit creation unavailable | Check the LangSmith plan, supported region, selected workspace, and Workspace Admin access. See [Tool Gateway availability](https://docs.langchain.com/langsmith/tool-gateway). |
 | No tools in the kit picker | Connect the server as **You** first. Check the **Workspace/Personal** scope and server filter, then reopen the editor. A registered OAuth server alone is not a connected account. |
