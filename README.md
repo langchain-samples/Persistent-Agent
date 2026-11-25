@@ -487,7 +487,7 @@ Use keys and a tool kit from that same region.
 | "Every Friday at 4, summarize what I shipped" | Creates a recurring task in your timezone. |
 | "Let me know when the release PR is approved" | Records a goal and checks on it hourly until it's done. |
 | "Research our top three competitors' pricing" | Hands it to a background subagent and reports back. |
-| "Book a table for two on Friday" | Works in its browser and hands it to you to log in. |
+| "After every meeting, send me an action item summary" | Summarizes action items from available meeting notes or transcripts and sends them to you. |
 | `!clear` | Forgets everything about you and cancels your schedules. |
 
 Add it to a channel and it stays quiet unless it can help. Mention it to ask directly.
