@@ -49,28 +49,43 @@ cp .env.example .env
 
 ### 2. Get a key and connect tools
 
-- **Get a LangSmith API key and workspace ID.** [Step-by-step instructions →](#langsmith-api-key-and-workspace)
+- **Create a LangSmith personal access token (PAT) and copy your workspace ID.** [Step-by-step instructions →](#langsmith-api-key-and-workspace)
 - **Connect built-in tools such as Slack and copy your tool kit's MCP URL.** [Step-by-step instructions →](#tool-server-setup)
 
 ### 3. Fill in `.env`
 
-Replace the example values in `.env` with your own:
+First, fill in the three values you collected in step 2:
 
 ```dotenv
 LANGSMITH_API_KEY=<your-langsmith-personal-access-token>
 LANGSMITH_WORKSPACE_ID=<your-workspace-id>
-AGENT_MODEL=anthropic:claude-opus-5-5
-ANTHROPIC_API_KEY=<your-anthropic-api-key>
 TOOLS_MCP_URL=<your-tool-kit-mcp-url>
 ```
 
-Keep `.env` private and leave `TOOLS_PROFILE` unset so each person uses their own app accounts.
+#### Configure the language model
+
+Add these lines to the same `.env` file to use **Claude Opus directly through Anthropic**.
+The Anthropic key authorizes and pays for model calls; it is separate from your LangSmith PAT.
+Get it from the [Anthropic console](https://console.anthropic.com/settings/keys).
+
+```dotenv
+AGENT_MODEL=anthropic:claude-opus-5-5
+ANTHROPIC_API_KEY=<your-anthropic-api-key>
+```
+
+For GPT with an OpenAI key or the optional LLM Gateway, see the
+[model setup deep dive](#model-options). Choose one model configuration.
+
+Keep `.env` private.
 
 ### 4. Deploy and open Slack
 
 ```bash
 uv run mda deploy
 ```
+
+Run this from the repository directory. The CLI reads `.env` automatically, so you do not
+need to export `LANGSMITH_API_KEY` separately. [Environment loading help →](#does-deploy-need-an-exported-api-key)
 
 Open the Slack authorization link if prompted, approve the app, then return to the terminal
 and press **Enter**. When deployment finishes, DM the bot **“hi”** and follow any app
@@ -91,6 +106,9 @@ focus on the relevant controls. Names such as **Demo Workspace** are examples; u
 workspace throughout.
 
 ## LangSmith API key and workspace
+
+**Use a Personal Access Token (PAT) for this setup.** If you already created one,
+keep using it in `LANGSMITH_API_KEY`; you do not need a service key.
 
 There are three different kinds of access involved. Setting up one does not configure the others:
 
@@ -129,32 +147,15 @@ refer to this same workspace.
 `LANGSMITH_WORKSPACE_ID`. A personal access token inherits your permissions; it does not
 make you a workspace admin if you were not already one.
 
-### Workspace scope versus organization scope
+### How your PAT selects a workspace
 
-**Key type** answers “who is calling?” **Scope** answers “which workspaces can they access?”
+Your PAT inherits your access to LangSmith. Its **Default Workspace** tells LangSmith where
+to route requests when no workspace is specified; it does not restrict the PAT to that
+workspace. Set `LANGSMITH_WORKSPACE_ID` explicitly to choose where this agent deploys.
+That setting does not grant any additional permissions.
 
-| Key choice | When to use it | Workspace behavior |
-|---|---|---|
-| **Personal Access Token** | This interactive quickstart and local Studio testing. | Inherits your access. The default workspace is a routing default, not a restriction to that workspace. Set `LANGSMITH_WORKSPACE_ID` explicitly. |
-| **Service Key → Specific Workspaces** | Automation or CI that deploys to selected workspaces. | Select the target workspace and suitable roles. Prefer a single workspace when that is all the automation needs. |
-| **Service Key → Full Organization** | Automation that actually needs organization-wide access. | Broader scope; still set `LANGSMITH_WORKSPACE_ID` to select the deployment's destination. |
-| **Tracing Only** | Writing traces. | Insufficient for this deployment quickstart. |
-
-For a service key, the creation dialog has a separate **Scope for Service Key** setting:
-
-<img src="docs/images/setup/service-key-scope.jpg" alt="Service Key selected with Specific Workspaces scope, organization role, selected workspace, and workspace role" width="720">
-
-The role shown in the screenshot is the form's default, not a promise that it can perform
-every setup action. Your deployment automation needs the permissions for the resources it
-creates. Creating Tool Gateway servers and kits uses your signed-in user in the UI (or a
-personal access token through the API); a service key cannot create those resources.
-
-Setting `LANGSMITH_WORKSPACE_ID` selects a workspace. It does **not** expand a key's access,
-turn a PAT into a service key, or change an organization-scoped key into a workspace-scoped key.
-For gateway-specific key requirements, see [the optional gateway setup](#optional-use-the-llm-gateway).
-
-See [LangSmith API keys](https://docs.langchain.com/langsmith/create-account-api-key) for
-permissions and key lifecycle details.
+See [LangSmith API keys](https://docs.langchain.com/langsmith/create-account-api-key)
+for more on permissions and key management.
 
 ## Tool Server setup
 
@@ -185,10 +186,18 @@ for the latest available integrations and authentication requirements.
 
 1. Open **Tools → MCP servers** in LangSmith.
 2. Select **You** under **Connected as**, and **Workspace** for server scope.
-3. Search for an integration from the table above.
+3. Set the server source filter to **Built-in**, then search for an integration from the table above.
 4. Choose the entry labeled **Built-in**. Your workspace may also have custom servers with
    similar names; you do not need to create another one.
 5. Follow [Connect your account](#2-connect-your-account) below, then add its tools to your kit.
+
+<img src="docs/images/setup/built-in-integrations.jpg" alt="MCP servers filtered to Built-in, with You and Workspace selected, showing integrations and their connection status" width="960">
+
+Click an integration's name to preview its tools. For example, Gmail provides tools to
+read, draft, and send email. A visible tool list does not mean your account is connected;
+check the connection status before continuing.
+
+<img src="docs/images/setup/built-in-tools.jpg" alt="Built-in Gmail tool preview listing email tools while the account status is Not connected" width="672">
 
 **Built-in means no server registration.** Integrations that require OAuth or an API key
 still need a connected account. Every integration's tools must be selected in your kit
@@ -280,7 +289,7 @@ There are two separate steps:
   sign-in link. This is the account used for their tool calls.
 
 Choosing **Workspace** for the kit shares its tool selection; it does not by itself share
-your personal OAuth credentials. Keep `TOOLS_PROFILE` unset for this per-person setup.
+your personal OAuth credentials. The template uses each person's own connected accounts.
 For a custom server that uses API keys, choose per-person credentials if each person should
 use their own access; workspace credentials or a shared profile deliberately use shared access.
 
@@ -340,7 +349,7 @@ adds `?mode=search` so the agent can find relevant tools. You do not need to pas
 sample MCP code into the project or put an API key in the URL.
 
 **Check before deploying:** the kit and `LANGSMITH_WORKSPACE_ID` belong to the same workspace,
-the kit contains tools, and `TOOLS_PROFILE` is unset. After changing `.env`, run
+and the kit contains the tools you want to use. After changing `.env`, run
 `uv run mda deploy` again to update the deployment.
 
 ### 5. Let each teammate connect their own apps
@@ -442,11 +451,9 @@ when your team wants centrally managed model credentials and policies.
 2. In **Settings → Workspace → Secrets**, add your provider key as a workspace secret
    named `ANTHROPIC_API_KEY` (or the name required by your provider). The gateway reads it
    from that workspace; a key only in your local `.env` does not configure the gateway.
-3. Make sure the LangSmith key used for local gateway access is **workspace-scoped** and
-   has `gateway:invoke` and `workspaces:read`. For a PAT, the gateway uses its **Default
-   Workspace**; for a service key, choose **Specific Workspaces** and just this workspace.
-   Organization-scoped keys are not supported by the gateway. Setting
-   `LANGSMITH_WORKSPACE_ID` does not change that.
+3. Keep using your PAT. Set its **Default Workspace** to the deployment's workspace and
+   make sure your permissions include `gateway:invoke` and `workspaces:read`. The gateway
+   uses the PAT's default workspace; setting `LANGSMITH_WORKSPACE_ID` alone does not change it.
 4. Use **LLM Gateway → Simulator** to verify that the selected model works in that workspace.
 5. Set the model in `.env`, then redeploy:
 
@@ -475,7 +482,7 @@ See [gateway setup](https://docs.langchain.com/langsmith/llm-gateway-admin-setup
 | LangSmith `401` / `403`, or deployment goes to the wrong workspace | Check key expiration, key permissions, `LANGSMITH_WORKSPACE_ID`, and region. A tracing-only key cannot deploy. |
 | Model authentication error or unexpected LLM Gateway error | Check that there is one active `AGENT_MODEL` line. Use `anthropic:...` with `ANTHROPIC_API_KEY`, or `openai:...` with `OPENAI_API_KEY`, then redeploy. |
 | Bot replies but cannot use apps | Confirm `TOOLS_MCP_URL` is the saved kit's MCP URL, the kit contains tools, and the deployment was updated after changing `.env`. Finish the caller's connection prompts. |
-| A teammate cannot use your kit | Use a **Workspace** kit with workspace servers or built-in integrations. Keep `TOOLS_PROFILE` unset and have the teammate connect their own accounts. |
+| A teammate cannot use your kit | Use a **Workspace** kit with workspace servers or built-in integrations, and have the teammate connect their own accounts. |
 | Bot asks you to connect before it answers | The kit includes authenticated servers you have not connected. Complete the DM links or start with the public documentation tool only. |
 | Slack authorization does not finish | Complete Slack admin approval, then return to the terminal and press Enter when prompted. |
 | `Cannot change target.agent_id on an existing channel` | Keep the agent name the Slack app was created with, or follow the [architecture troubleshooting](docs/architecture.md#troubleshooting) before recreating the integration. |
@@ -483,6 +490,25 @@ See [gateway setup](https://docs.langchain.com/langsmith/llm-gateway-admin-setup
 For another LangSmith region, set `LANGSMITH_ENDPOINT` before the first deployment using the
 [region table](https://docs.langchain.com/langsmith/python/managed-deep-agents-deploy#select-a-saas-region).
 Use keys and a tool kit from that same region.
+
+### Does deploy need an exported API key?
+
+No. Run `uv run mda deploy` from the repository directory after saving your PAT in `.env`.
+The CLI reads the project's `.env` before shell environment variables, so a key already
+exported by your shell should not override that file. See the
+[deployment environment documentation](https://docs.langchain.com/langsmith/python/managed-deep-agents-deploy#secrets-and-environment-files).
+
+If deployment only works after you export a key, check that you are in the repository
+directory and saved the file as `.env`. You can explicitly select it:
+
+```bash
+uv run mda deploy --env-file .env
+```
+
+If the behavior still differs, check `uv run mda --version` when reporting the issue.
+The PAT authenticates your deployment request; it is not uploaded as a user-managed runtime
+secret. Platform-provided runtime credentials are separate and do not require you to create
+another key for this walkthrough.
 
 ## Use it
 
