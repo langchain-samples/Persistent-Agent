@@ -12,9 +12,9 @@
 
 <br>
 
-Persistent Agent is a team assistant that keeps working after the conversation ends. Everyone
-talks to the same bot, but each person gets their own assistant: it remembers what they told it,
-follows up on their goals, runs their recurring work and uses the apps they connected. Built on
+Persistent Agent is a proactive, always-on, goal-oriented agent. Think Muse or Instinct, but
+for the enterprise. Comes with memory, browser use, hundreds of tools, and proactive playbooks
+it can run in the background to take work off your plate. Built on
 [Managed Deep Agents](https://docs.langchain.com/langsmith/python/managed-deep-agents-overview)
 (MDA).
 
