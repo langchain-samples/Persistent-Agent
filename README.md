@@ -33,10 +33,14 @@ it can run in the background to take work off your plate. Built on
 
 ## Quickstart
 
-You need [GitHub SSH access](https://docs.github.com/en/authentication/connecting-to-github-with-ssh),
-[uv](https://docs.astral.sh/uv/getting-started/installation/), Python 3.11+, a LangSmith Plus or Enterprise workspace with Managed Deep Agents and Workspace Admin access,
-an [Anthropic API key](https://console.anthropic.com/settings/keys) with API billing enabled,
-and permission to install an app in Slack. This setup uses **Claude Opus directly**.
+**What you need for this setup:**
+
+- **Local tools:** Git and [uv](https://docs.astral.sh/uv/getting-started/installation/) for the commands below. uv can install Python for you.
+- **LangSmith:** a Plus or Enterprise workspace with Managed Deep Agents enabled and Workspace Admin access.
+- **Model access:** an Anthropic or OpenAI API key with API billing, or a configured LangSmith LLM Gateway. [Model options →](#model-options)
+- **Slack:** a workspace where you or an admin can install the bot.
+
+The quickstart uses **Claude Opus directly** by default.
 
 ### 1. Clone and install
 
