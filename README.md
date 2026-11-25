@@ -172,28 +172,35 @@ LangSmith hosts this layer; you do not run a separate Tool Server process on you
 
 ### 1. Choose your tools: start with the built-ins
 
-**Slack is built in. You do not need to click Add MCP server, find a Slack MCP URL, or host
-a server yourself.** LangSmith already provides the integration; you connect your account
-and select its tools for your kit.
+**LangSmith provides built-in integrations you can select directly.** You do not need to
+click **Add MCP server**, find an MCP URL, or host a server for any of these integrations.
+Choose the services you want, connect your accounts where required, and select their tools
+for your kit.
 
-Other built-ins include **Gmail, Google Calendar, Google Drive, Google Docs, Google Sheets,
-GitHub, Linear, Outlook, and Teams**. See the [full built-in list](https://docs.langchain.com/langsmith/tool-gateway-servers#use-a-built-in-server)
-for more services and the credentials each one requires.
+| How you connect | Built-in integrations |
+|---|---|
+| **Sign in and authorize access (OAuth)** | Excel, GitHub, Gmail, Google BigQuery, Google Calendar, Google Docs, Google Drive, Google Meet, Google Sheets, Google Slides, Linear, LinkedIn, OneDrive, Outlook, PowerPoint, Salesforce, SharePoint, Slack, Teams, Word, X |
+| **Provide an API key from the service** | Apollo, Ashby, Exa, Pylon, Tavily |
+| **No credentials needed** | Base, Parallel |
+
+See the [official built-in list](https://docs.langchain.com/langsmith/tool-gateway-servers#use-a-built-in-server)
+for the latest available integrations and authentication requirements.
 
 1. Open **Tools → MCP servers** in LangSmith.
 2. Select **You** under **Connected as**, and **Workspace** for server scope.
-3. Search for **Slack** (or another app you want to use).
+3. Search for an integration from the table above.
 4. Choose the entry labeled **Built-in**. Your workspace may also have custom servers with
    similar names; you do not need to create another one.
 5. Follow [Connect your account](#2-connect-your-account) below, then add its tools to your kit.
 
-**Built-in means no server registration.** Apps such as Slack still need you to authorize
-access, and their tools still need to be selected in your kit before this agent can use them.
+**Built-in means no server registration.** Integrations that require OAuth or an API key
+still need a connected account. Every integration's tools must be selected in your kit
+before this agent can use them.
 
 #### Optional: add a custom server or a public test tool
 
 Use **Add MCP server** for your own MCP endpoint or a service that is not already available
-in the list. Skip this section if you are using built-in Slack or another built-in app.
+in the list. Skip this section if you are using only built-in integrations.
 
 For a first test without another app login, you can add the public LangChain documentation
 server. It gives you a concrete tool to test after deployment:
@@ -220,16 +227,17 @@ or add the apps you want below first.
 
 ### 2. Connect your account
 
-For **built-in Slack**:
-
-1. In **Tools → MCP servers**, keep **You** and **Workspace** selected and search for **Slack**.
-2. Click **Connect** on the **Built-in** Slack entry. If it already shows **Connected**,
+1. In **Tools → MCP servers**, keep **You** and **Workspace** selected and find your integration.
+2. If it needs credentials, click **Connect** on its **Built-in** entry. If it already shows **Connected**,
    continue to [create your tool kit](#3-create-a-workspace-tool-kit).
-3. In Slack's authorization page, choose the workspace/account you intend to use and
-   review and approve the requested access. Complete admin approval if Slack requires it.
-4. Wait for LangSmith's authentication success page, then return to **MCP servers**.
-5. Confirm Slack now shows **Connected**.
-6. [Create or edit your tool kit](#3-create-a-workspace-tool-kit), filter for Slack, and
+3. Complete the connection method listed in the table above:
+   - **OAuth:** sign in to the service, choose the account or workspace you intend to use,
+     and review and approve the requested access. Complete admin approval if required.
+   - **API key:** enter a key from that service in the connection form. This is the
+     service's own key, not your LangSmith API key.
+   - **No credentials:** skip the connection step and go straight to selecting tools.
+4. After connecting, return to **MCP servers** and confirm the integration shows **Connected**.
+5. [Create or edit your tool kit](#3-create-a-workspace-tool-kit), filter for the integration, and
    select the tools you want the agent to have.
 
 Repeat for other built-in apps you want to use. Each person who uses the bot will connect
