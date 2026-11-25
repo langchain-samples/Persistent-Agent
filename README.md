@@ -53,7 +53,7 @@ cp .env.example .env
 ### 2. Get a key and connect tools
 
 - **Get a LangSmith API key and workspace ID.** [Step-by-step instructions →](#langsmith-api-key-and-workspace)
-- **Connect Tool Server and copy your tool kit's MCP URL.** [Step-by-step instructions →](#tool-server-setup)
+- **Connect built-in tools such as Slack and copy your tool kit's MCP URL.** [Step-by-step instructions →](#tool-server-setup)
 
 ### 3. Fill in `.env`
 
@@ -166,14 +166,37 @@ The feature called **Tool Server** in this walkthrough is documented as
 LangSmith. It connects the agent to apps. The **LLM Gateway** handles model calls and is a
 separate, optional feature.
 
-You will do four things: **add a server → connect your account if required → select tools in
-a kit → copy the kit's MCP URL into `.env`**. LangSmith hosts this layer; you do not run a
-separate Tool Server process on your laptop.
+You will do four things: **choose a built-in integration (or add a custom server) → connect
+your account if required → select tools in a kit → copy the kit's MCP URL into `.env`**.
+LangSmith hosts this layer; you do not run a separate Tool Server process on your laptop.
 
-### 1. Add your first MCP server
+### 1. Choose your tools: start with the built-ins
 
-For a first test, use the public LangChain documentation server. It needs no Google, Linear,
-or GitHub login and gives you a concrete tool to test after deployment.
+**Slack is built in. You do not need to click Add MCP server, find a Slack MCP URL, or host
+a server yourself.** LangSmith already provides the integration; you connect your account
+and select its tools for your kit.
+
+Other built-ins include **Gmail, Google Calendar, Google Drive, Google Docs, Google Sheets,
+GitHub, Linear, Outlook, and Teams**. See the [full built-in list](https://docs.langchain.com/langsmith/tool-gateway-servers#use-a-built-in-server)
+for more services and the credentials each one requires.
+
+1. Open **Tools → MCP servers** in LangSmith.
+2. Select **You** under **Connected as**, and **Workspace** for server scope.
+3. Search for **Slack** (or another app you want to use).
+4. Choose the entry labeled **Built-in**. Your workspace may also have custom servers with
+   similar names; you do not need to create another one.
+5. Follow [Connect your account](#2-connect-your-account) below, then add its tools to your kit.
+
+**Built-in means no server registration.** Apps such as Slack still need you to authorize
+access, and their tools still need to be selected in your kit before this agent can use them.
+
+#### Optional: add a custom server or a public test tool
+
+Use **Add MCP server** for your own MCP endpoint or a service that is not already available
+in the list. Skip this section if you are using built-in Slack or another built-in app.
+
+For a first test without another app login, you can add the public LangChain documentation
+server. It gives you a concrete tool to test after deployment:
 
 1. Open **Tools** in the LangSmith sidebar, then select **MCP servers**.
 2. Select **You** under **Connected as**, and **Workspace** for server scope.
@@ -195,26 +218,46 @@ or GitHub login and gives you a concrete tool to test after deployment.
 account sign-in step. Continue to [create your tool kit](#3-create-a-workspace-tool-kit),
 or add the apps you want below first.
 
-### 2. Add apps and connect your account
+### 2. Connect your account
 
-For a built-in integration, search for it under **MCP servers** and use its **Connect** button.
-For a remote server, add the service's MCP URL. For example, to add Linear:
+For **built-in Slack**:
+
+1. In **Tools → MCP servers**, keep **You** and **Workspace** selected and search for **Slack**.
+2. Click **Connect** on the **Built-in** Slack entry. If it already shows **Connected**,
+   continue to [create your tool kit](#3-create-a-workspace-tool-kit).
+3. In Slack's authorization page, choose the workspace/account you intend to use and
+   review and approve the requested access. Complete admin approval if Slack requires it.
+4. Wait for LangSmith's authentication success page, then return to **MCP servers**.
+5. Confirm Slack now shows **Connected**.
+6. [Create or edit your tool kit](#3-create-a-workspace-tool-kit), filter for Slack, and
+   select the tools you want the agent to have.
+
+Repeat for other built-in apps you want to use. Each person who uses the bot will connect
+their own accounts later; your connection does not authorize their accounts.
+
+**Connecting Slack here is separate from installing the agent's Slack bot.** This step gives
+the agent access to Slack tools through your account. The [deployment step](#deploy-and-connect-slack)
+installs the bot you talk to. Neither step requires manually registering a Slack MCP server.
+
+<details>
+<summary>Optional: connect a custom OAuth MCP server</summary>
+
+If you deliberately want a separate remote MCP endpoint, you can register it yourself.
+For example, the screenshot below shows Linear's remote endpoint. **Linear also has a
+built-in integration; use that for the simpler setup.** This custom example is optional.
 
 1. In **Tools → MCP servers**, keep **You** and **Workspace** selected.
-2. Search for an existing Linear server first. If none exists, click **Add MCP server**.
-3. Enter **Name:** `Linear` and **URL:** `https://mcp.linear.app/mcp`.
+2. Check whether the endpoint is already registered. If it is, use the existing entry.
+   Otherwise, click **Add MCP server**.
+3. For this example, enter **Name:** `Linear` and **URL:** `https://mcp.linear.app/mcp`.
 4. Select **OAuth**, leave **OAuth Setup** as **Automatic OAuth**, and click **Add server**.
 
-<img src="docs/images/setup/add-mcp-server.jpg" alt="Linear MCP server setup with OAuth and Automatic OAuth selected" width="704">
+<img src="docs/images/setup/add-mcp-server.jpg" alt="Optional custom Linear MCP server setup with OAuth and Automatic OAuth selected; the built-in Linear integration needs no server registration" width="704">
 
-5. Back in the server list, click **Connect** on the Linear row.
-6. In the provider's sign-in page, choose the account/workspace you want to connect and
-   review and approve the requested access.
-7. Wait for LangSmith's authentication success page, then return to **MCP servers**.
-8. Confirm the server now shows **Connected** before creating or editing a tool kit.
+5. Click **Connect** on the server's row, complete the provider's authorization flow,
+   and confirm **Connected** before selecting its tools in your kit.
 
-Repeat for other services you want the agent to use. Each service has its own permissions
-and approval flow. You only need to connect the services you intend to add.
+</details>
 
 #### Why do I have to connect before I can add tools for my users?
 
@@ -255,7 +298,8 @@ cannot create a workspace kit, ask a workspace admin to create it for this deplo
 
 5. Search or filter by server and check the tools you want to include. For the starter
    example, search `search_docs` and check **search_docs_by_lang_chain** from **docs-langchain**.
-   For your apps, select the read/search tools you want to start with; add write tools when needed.
+   For built-in Slack or another app, filter by that app and select its read/search tools
+   to start with; add write tools when needed.
 
 <img src="docs/images/setup/select-tool.jpg" alt="Tool picker with search_docs_by_lang_chain selected from the docs-langchain server" width="704">
 
