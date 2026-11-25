@@ -29,11 +29,6 @@ follows up on their goals, runs their recurring work and uses the apps they conn
 - **Integrations**: Google, Slack, Linear, GitHub and more through Tool Gateway
 - **A browser per person**: it works on websites and hands you the browser when it needs you
 
-Each is a few lines on top of an MDA primitive. Keep what you need and delete the rest.
-
-> [!NOTE]
-> **Early.** We use it every day at LangChain, but expect rough edges and breaking changes.
-
 ## Quickstart
 
 You need [GitHub SSH access](https://docs.github.com/en/authentication/connecting-to-github-with-ssh),
